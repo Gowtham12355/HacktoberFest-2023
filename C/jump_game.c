@@ -1,44 +1,72 @@
+#include <SDL.h>
 #include <stdio.h>
 #include <stdbool.h>
 
-bool canJump(int *nums, int numsSize)
-{
-    int maxReach = 0;
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
+#define GRAVITY 0.5
+#define JUMP_FORCE -15
 
-    for (int i = 0; i < numsSize; i++)
-    {
-        // If we've reached a position that is not reachable, return false
-        if (i > maxReach)
-        {
-            return false;
-        }
+typedef struct {
+    SDL_Rect rect;
+    float velocityY;
+    bool isJumping;
+} Player;
 
-        // Update the maximum reachable position
-        maxReach = (i + nums[i] > maxReach) ? (i + nums[i]) : maxReach;
-
-        // If we can reach the end of the array, return true
-        if (maxReach >= numsSize - 1)
-        {
-            return true;
-        }
+void handleInput(SDL_Event event, Player *player) {
+    const Uint8 *state = SDL_GetKeyboardState(NULL);
+    if (state[SDL_SCANCODE_SPACE] && !player->isJumping) {
+        player->velocityY = JUMP_FORCE;
+        player->isJumping = true;
     }
-
-    return false;
 }
 
-int main()
-{
-    int nums[] = {2, 3, 1, 1, 4}; // Example input array
-    int numsSize = sizeof(nums) / sizeof(nums[0]);
+void updatePlayer(Player *player) {
+    player->velocityY += GRAVITY;
+    player->rect.y += (int)player->velocityY;
 
-    if (canJump(nums, numsSize))
-    {
-        printf("Yes, you can reach the end of the array!\n");
+    if (player->rect.y >= WINDOW_HEIGHT - player->rect.h) {
+        player->rect.y = WINDOW_HEIGHT - player->rect.h;
+        player->isJumping = false;
+        player->velocityY = 0;
     }
-    else
-    {
-        printf("No, you cannot reach the end of the array.\n");
+}
+
+void renderPlayer(SDL_Renderer *renderer, Player *player) {
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_RenderFillRect(renderer, &player->rect);
+}
+
+int main(int argc, char *argv[]) {
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Window *window = SDL_CreateWindow("Jumping Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    
+    Player player = { .rect = { 50, WINDOW_HEIGHT - 100, 50, 50 }, .velocityY = 0, .isJumping = false };
+
+    bool running = true;
+    SDL_Event event;
+
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+            handleInput(event, &player);
+        }
+
+        updatePlayer(&player);
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        renderPlayer(renderer, &player);
+        SDL_RenderPresent(renderer);
+
+        SDL_Delay(16);  // ~60 FPS
     }
 
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
 }
