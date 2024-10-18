@@ -1,0 +1,67 @@
+#include <gtk/gtk.h>
+
+GtkWidget *entry;
+
+void on_button_clicked(GtkWidget *widget, gpointer data) {
+    const char *button_label = gtk_button_get_label(GTK_BUTTON(widget));
+    const char *current_text = gtk_entry_get_text(GTK_ENTRY(entry));
+
+    if (g_strcmp0(button_label, "=") == 0) {
+        // Evaluate expression
+        double result = 0;
+        gchar *error = NULL;
+
+        // Evaluate the expression in the entry field
+        result = g_strtod(current_text, &error);
+
+        if (*error != '\0') {
+            gtk_entry_set_text(GTK_ENTRY(entry), "Error");
+        } else {
+            gchar result_text[20];
+            g_snprintf(result_text, sizeof(result_text), "%f", result);
+            gtk_entry_set_text(GTK_ENTRY(entry), result_text);
+        }
+    } else {
+        // Append button label to the entry
+        gchar new_text[256];
+        g_snprintf(new_text, sizeof(new_text), "%s%s", current_text, button_label);
+        gtk_entry_set_text(GTK_ENTRY(entry), new_text);
+    }
+}
+
+void create_calculator(GtkWidget *window) {
+    GtkWidget *grid = gtk_grid_new();
+    gtk_container_add(GTK_CONTAINER(window), grid);
+
+    entry = gtk_entry_new();
+    gtk_grid_attach(GTK_GRID(grid), entry, 0, 0, 4, 1);
+
+    const char *buttons[] = {
+        "7", "8", "9", "/",
+        "4", "5", "6", "*",
+        "1", "2", "3", "-",
+        "0", ".", "=", "+"
+    };
+
+    for (int i = 0; i < 16; i++) {
+        GtkWidget *button = gtk_button_new_with_label(buttons[i]);
+        g_signal_connect(button, "clicked", G_CALLBACK(on_button_clicked), NULL);
+        gtk_grid_attach(GTK_GRID(grid), button, i % 4, (i / 4) + 1, 1, 1);
+    }
+}
+
+int main(int argc, char *argv[]) {
+    gtk_init(&argc, &argv);
+
+    GtkWidget *window = gtk_window_new();
+    gtk_window_set_title(GTK_WINDOW(window), "Calculator");
+    gtk_window_set_default_size(GTK_WINDOW(window), 400, 400);
+    g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+
+    create_calculator(window);
+
+    gtk_widget_show_all(window);
+    gtk_main();
+
+    return 0;
+}
